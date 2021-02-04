@@ -1,0 +1,9 @@
+To run:
+1) Export code as jar.
+
+2)Run in terminal:
+> hadoop jar pagerank.jar <input> <output>
+
+For instance:
+[cloudera@quickstart homework3PageRank]$ hadoop jar pagerank.jar /user/cloudera/inputhomework4 outputhomework4_11
+

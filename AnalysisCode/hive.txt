@@ -1,0 +1,492 @@
+>hive
+
+use mh4047;
+
+create external table alltables (Unique_Key string,Created_Date string,Closed_Date string,Agency string,Agency_Name string,Complaint_Type string,Descriptor string,Location_Type string,Incident_Zip string,Incident_Address string,Street_Name string,Cross_Street_1 string,Cross_Street_2 string,Intersection_Street_1 string,Intersection_Street_2 string,Address_Type string,City string,Landmark string,Facility_Type string,Status string,Due_Date string,Resolution_Action_Updated_Date string,Community_Board string,Borough string,X_Coordinate string,Y_Coordinate string,Park_Facility_Name string,Park_Borough string,School_Name string,School_Number string,School_Region string,School_Code string,School_Phone_Number string,School_Address string,School_City string,School_State string,School_Zip string,School_Not_Found string,School_or_Citywide_Complaint string,Vehicle_Type string,Taxi_Company_Borough string,Taxi_Pick_Up_Location string,Bridge_Highway_Name string,Bridge_Highway_Direction string,Road_Ramp string,Bridge_Highway_Segment string,Garage_Lot_Name string,Ferry_Direction string,Ferry_Terminal_Name string,Latitude string,Longitude string,Location string)
+row format delimited fields terminated by ','
+location '/user/mh4047/unioninput/';
+
+ALTER TABLE alltables CHANGE Created_Date Created_Date string AFTER Unique_Key;
+ALTER TABLE alltables CHANGE Closed_Date Closed_Date string AFTER Created_Date;
+ALTER TABLE alltables CHANGE Due_Date Due_Date string AFTER Status;
+ALTER TABLE alltables CHANGE Resolution_Action_Updated_Date Resolution_Action_Updated_Date string AFTER Due_Date;
+
+
+hive> select Created_Date, unix_timestamp(Created_Date, 'MM/dd/yyyy hh:mm:ss aa'), unix_timestamp(Created_Date, 'MM/dd/yyyy') from alltables;
+
+
+
+hive> select * from alltables where unix_timestamp(Created_Date, 'MM/dd/yyyy')=unix_timestamp('01/01/2014','MM/dd/yyyy');
+
+
+#Get difference of the timings
+hive> select Created_Date,Closed_Date, unix_timestamp(Closed_Date, 'MM/dd/yyyy')-unix_timestamp(Created_Date, 'MM/dd/yyyy') from alltables;
+
+#Get average of timings grouped by Agency
+hive> select Agency, Created_Date,Closed_Date, (unix_timestamp(Closed_Date, 'MM/dd/yyyy')-unix_timestamp(Created_Date, 'MM/dd/yyyy')) as Complaint_Duration from alltables where Created_Date <> '' and Closed_Date <> '';
+
+hive> select Agency, Avg(tbl1.Complaint_Duration) from (select Agency, Created_Date,Closed_Date, (unix_timestamp(Closed_Date, 'MM/dd/yyyy')-unix_timestamp(Created_Date, 'MM/dd/yyyy')) as Complaint_Duration from alltables where Created_Date <> '' and Closed_Date <> '') tbl1 group by tbl1.Agency;
+
+Average timings of duration 
+TLC	2912962.844561288
+CHALL	-3.64825485E9
+DCA	914214.6592178771
+FDNY	-178987.74511677687
+DPR	1731920.791041735
+DEP	490579.8442939853
+DORIS	259200.0
+NYPD	-9890.185607358175
+OPS	-3.5663616E9
+DOB	5065397.45912859
+EDC	2231186.4799613715
+DOE	3367462.478841452
+DSNY	982286.382709574
+HRA	-59007.52775342058
+DOF	158947.37509430136
+DOHMH	-1.607874935988268E7
+NYCEM	691164.3171806168
+DHS	13976.290880605784
+HPD	1156174.986034796
+DOR	266528.5714285714
+3-1-1	-1399232.7629302058
+Agency	NULL
+DOT	751134.6561826142
+DCAS	-3.5647776E9
+DOITT	1199490.3677758318
+DFTA	-864596.752368065
+
+#Filter out the timings of duration that are negative. We assume them to not contribute any ainformation on data
+hive> select * from (select Agency, Created_Date,Closed_Date, (unix_timestamp(Closed_Date, 'MM/dd/yyyy') - unix_timestamp(Created_Date, 'MM/dd/yyyy')) as Complaint_Duration from alltables where Created_Date <> '' and Closed_Date <> '') tbl1 where tbl1.Complaint_Duration>=0;
+
+TLC	4004547.183506022
+DCA	914214.6592178771
+FDNY	372670.39798141987
+DPR	4461681.184798033
+DEP	490584.21030486125
+DORIS	259200.0
+NYPD	18364.39957626582
+DOB	5065397.45912859
+EDC	2231186.4799613715
+DOE	3367462.478841452
+DSNY	1012148.1089713916
+HRA	20.01257403792065
+DOF	158947.37509430136
+DOHMH	2166149.6684322474
+NYCEM	691164.3171806168
+DHS	13976.290880605784
+HPD	1156174.986034796
+DOR	266528.5714285714
+3-1-1	188.34391229082516
+DOT	880873.0716615407
+DOITT	2770503.547963206
+DFTA	1611929.8578199053
+
+#Filter out the timings of duration that are negative. We assume them to not contribute any ainformation on data
+hive> select Agency, to_date(cast(Avg(Complaint_Duration) as string)) from(select * from (select Agency, Created_Date,Closed_Date, date_sub(cast(unix_timestamp(Created_Date, 'MM/dd/yyyy') as string),cast(unix_timestamp(Closed_Date, 'MM/dd/yyyy') as string)) as Complaint_Duration from alltables where Created_Date <> '' and Closed_Date <> '') tbl1 where tbl1.Complaint_Duration>=0) tbl2 group by tbl2.Agency;
+
+TLC	1970-02-16 03:22:27
+DCA	1970-01-11 08:56:54
+FDNY	1970-01-05 02:31:10
+DPR	1970-02-21 10:21:21
+DEP	1970-01-06 11:16:24
+DORIS	1970-01-03 19:00:00
+NYPD	1970-01-01 00:06:04
+DOB	1970-02-28 10:03:17
+EDC	1970-01-26 14:46:26
+DOE	1970-02-08 18:24:22
+DSNY	1970-01-12 12:09:08
+HRA	1969-12-31 19:00:20
+DOF	1970-01-02 15:09:07
+DOHMH	1970-01-25 20:42:29
+NYCEM	1970-01-08 18:59:24
+DHS	1969-12-31 22:52:56
+HPD	1970-01-14 04:09:34
+DOR	1970-01-03 21:02:08
+3-1-1	1969-12-31 19:03:08
+DOT	1970-01-10 23:41:13
+DOITT	1970-02-01 20:35:03
+DFTA	1970-01-19 10:45:29
+
+#Count number of days
+> select Agency, datediff(from_unixtime(cast(Avg(Complaint_Duration) as bigint)), '1970-01-01 00:00:00') from(select * from (select Agency, Created_Date,Closed_Date, (unix_timestamp(Closed_Date, 'MM/dd/yyyy') - unix_timestamp(Created_Date, 'MM/dd/yyyy')) as Complaint_Duration from alltables where Created_Date <> '' and Closed_Date <> '') tbl1 where tbl1.Complaint_Duration>=0) tbl2 group by tbl2.Agency;
+
+TLC	46
+DCA	10
+FDNY	4
+DPR	51
+DEP	5
+DORIS	2
+NYPD	0
+DOB	58
+EDC	25
+DOE	38
+DSNY	11
+HRA	-1
+DOF	1
+DOHMH	24
+NYCEM	7
+DHS	-1
+HPD	13
+DOR	2
+3-1-1	-1
+DOT	9
+DOITT	31
+DFTA	18
+
+#Same thing as above except with due_date and resolution_action_updated_date
+> select * from alltables where unix_timestamp(resolution_action_updated_date, 'MM/dd/yyyy')<>NULL;
+> select Agency, due_date,resolution_action_updated_date, unix_timestamp(resolution_action_updated_date, 'MM/dd/yyyy'), abs(unix_timestamp(due_date, 'MM/dd/yyyy') - unix_timestamp(resolution_action_updated_date, 'MM/dd/yyyy')) as Complaint_Duration from alltables where due_date <> '' and resolution_action_updated_date <> '' and unix_timestamp(resolution_action_updated_date, 'MM/dd/yyyy')<>NULL;
+
+> select Agency, datediff(from_unixtime(cast(Avg(Complaint_Duration) as bigint)), '1970-01-01 00:00:00') from(select * from (select Agency, Created_Date,Closed_Date, (unix_timestamp(Closed_Date, 'MM/dd/yyyy') - unix_timestamp(Created_Date, 'MM/dd/yyyy')) as Complaint_Duration from alltables where Created_Date <> '' and Closed_Date <> '') tbl1 where tbl1.Complaint_Duration>=0) tbl2 group by tbl2.Agency;
+
+#Assess counts of the complaints types
+> select complaint_type, count(unique_key) from alltables group by complaint_type;
+
+#Assess counts of the complaints types by location
+> select Location_Type, count(unique_key) from alltables group by Location_Type;
+
+#Assess counts of the complaints types by facility_type (area covered?)
+>select facility_type, count(unique_key) from alltables group by facility_type;
+
+#Asses Agency and complaint relationship
+select Agency, complaint_type, count(unique_key) from alltables group by Agency, complaint_type;
+
+
+hive> use aat404db;
+hive> add jar /home/mh4047/csv-serde-1.0.jar;
+hive> select * from service_requests1 limit 1;
+
+
+select complainttype, concat('time: ',complaintHour), count(ukey) as countComplaints from (select complainttype, hour(unTS) as complaintHour, ukey from (select ukey, complainttype, createddate, from_unixtime(unix_timestamp(createddate, 'MM/dd/yyyy hh:mm:ss aa')) as unTS from service_requests1 where complainttype = "Hazardous Materials" group by complainttype, createddate, ukey) tbl2 group by complainttype, unTS, ukey) tbl3 group by complainttype, complaintHour;
+
+
+# Get number of opened complaints per hour for a particular complaint, Borough, zipcode, Agency, Year
+use aat404db;
+add jar /home/mh4047/csv-serde-1.0.jar;
+select complainttype, agency, incidentzip, borough, complaintHour, avg(distinct ukey) as openedComplaints from (select complainttype, agency, incidentzip, borough, hour(unTS) as complaintHour, ukey from (select ukey, agency, incidentzip, borough, complainttype, createddate, from_unixtime(unix_timestamp(createddate, 'MM/dd/yyyy hh:mm:ss aa')) as unTS from service_requests1 where createddate <> '' and closeddate <> '' group by complainttype, createddate, ukey, agency, incidentzip, borough) tbl2 group by complainttype, unTS, ukey, agency, incidentzip, borough) tbl3 group by complainttype, complaintHour, agency, incidentzip, borough;
+
+INSERT OVERWRITE DIRECTORY 'timebin' select complainttype, agency, incidentzip, borough, complaintHour, avg(distinct ukey) as openedComplaints from (select complainttype, agency, incidentzip, borough, hour(unTS) as complaintHour, ukey from (select ukey, agency, incidentzip, borough, complainttype, createddate, from_unixtime(unix_timestamp(createddate, 'MM/dd/yyyy hh:mm:ss aa')) as unTS from service_requests1 where createddate <> '' and closeddate <> '' group by complainttype, createddate, ukey, agency, incidentzip, borough) tbl2 group by complainttype, unTS, ukey, agency, incidentzip, borough) tbl3 group by complainttype, complaintHour, agency, incidentzip, borough;
+
+# Total count of open complaints per hour in total
+INSERT OVERWRITE DIRECTORY 'timebintotal' select agency, borough, complaintHour, year, count(distinct ukey) as openedComplaints from (select agency, borough, year(unTS) as year, hour(unTS) as complaintHour, ukey from (select ukey, agency, borough, createddate, from_unixtime(unix_timestamp(createddate, 'MM/dd/yyyy hh:mm:ss aa')) as unTS from service_requests1 where createddate <> '' and closeddate <> '' group by createddate, ukey, agency, borough) tbl2 group by unTS, ukey, agency, borough) tbl3 group by agency, borough, year, complaintHour;
+
+hadoop fs -ls timebintotal
+hadoop fs -cat timebintotal/000000_0
+hadoop fs -cat /user/mh4047/timebintotal/* |tr "\01" "," >>timebintotal.csv
+/**/
+scp mh4047@dumbo.es.its.nyu.edu:timebintotal.csv timebintotal.csv
+
+# Average open complaints per hour everyday
+INSERT OVERWRITE DIRECTORY 'timebinavg' select agency, borough, complaintHour, int(avg(open)) from (select agency, borough, complaintHour, month, day, year, count(distinct ukey) as open from (select agency, borough, month(unTS) as month, day(unTS) as day, year(unTS) as year, hour(unTS) as complaintHour, ukey from (select ukey, agency, borough, createddate, from_unixtime(unix_timestamp(createddate, 'MM/dd/yyyy hh:mm:ss aa')) as unTS from service_requests1 where createddate <> '' group by createddate, ukey, agency, borough) tbl2 group by unTS, ukey, agency, borough, unTS) tbl3 group by agency, borough, month, day, year, complaintHour) tbl4 group by agency, borough, complaintHour;
+
+#Same as above except also have all possible Agency,Borough,Hour so that one Hour isn't missing
+select distinct agency, borough from service_requests1;
+select distinct hour(from_unixtime(unix_timestamp(createddate, 'MM/dd/yyyy hh:mm:ss aa'))) from service_requests1;
+select * from (select distinct agency, borough from service_requests1) agencyborough join (select distinct hour(from_unixtime(unix_timestamp(createddate, 'MM/dd/yyyy hh:mm:ss aa'))) as hour from service_requests1) uniquehours order by agency, borough, hour;
+
+#INSERT OVERWRITE DIRECTORY 'timebinavg' select agencyboroughhour.agency, agencyboroughhour.borough, avgtbl.complaintHour, avgtbl.avgOpen from ( ) avgtbl join (select * from (select distinct agency, borough from service_requests1) agencyborough join (select distinct hour(from_unixtime(unix_timestamp(createddate, 'MM/dd/yyyy hh:mm:ss aa'))) as hour from service_requests1) uniquehours order by agency, borough, hour)agencyboroughhour where avgtbl.agency==agencyboroughhour.agency and avgtbl.borough==agencyboroughhour.borough and avgtbl.complaintHour==agencyboroughhour.hour order by agencyboroughhour.agency, agencyboroughhour.borough, avgtbl.complaintHour;
+
+hadoop fs -ls timebinavg
+hadoop fs -cat timebinavg/000000_0
+hadoop fs -cat /user/mh4047/timebinavg/* |tr "\01" "," >>timebinavg.csv
+
+/**/
+scp mh4047@dumbo.es.its.nyu.edu:timebinavg.csv timebinavg.csv
+
+select distinct agency, borough from service_requests1 ;
+DESIGNCOM	Unspecified
+EDC	BRONX
+FDNY	BROOKLYN
+DCAS	Unspecified
+DCP	Unspecified
+DEP	QUEENS
+DOITT	MANHATTAN
+DSNY	STATEN ISLAND
+NYPD	BRONX
+3-1-1	BROOKLYN
+OPA	Unspecified
+DHS	Unspecified
+DOF	Unspecified
+3-1-1	MANHATTAN
+DOHMH	QUEENS
+EDC	QUEENS
+ACS	Unspecified
+DCA	STATEN ISLAND
+NYPD	QUEENS
+DHS	BROOKLYN
+DOF	BROOKLYN
+OMB	Unspecified
+DOT	BRONX
+NYCEM	STATEN ISLAND
+DOB	STATEN ISLAND
+DSNY	Unspecified
+MOPD	Unspecified
+TLC	MANHATTAN
+FUND	Unspecified
+NYCHA	Unspecified
+FDNY	MANHATTAN
+DOT	QUEENS
+DSNY	BROOKLYN
+DCA	Unspecified
+DEP	STATEN ISLAND
+DOHMH	Unspecified
+NYCEM	Unspecified
+DCA	BROOKLYN
+DOB	Unspecified
+DOHMH	STATEN ISLAND
+EDC	STATEN ISLAND
+TFA	Unspecified
+DHS	MANHATTAN
+DOF	MANHATTAN
+NYPD	STATEN ISLAND
+OPS	Unspecified
+TLC	NULL
+NYCEM	BROOKLYN
+NYCOOA	Unspecified
+DCLA	Unspecified
+DOB	BROOKLYN
+DOE	BRONX
+DEP	Unspecified
+DFTA	BRONX
+DSNY	MANHATTAN
+CCRB	Unspecified
+DEP	BROOKLYN
+DOE	QUEENS
+DOT	STATEN ISLAND
+DPR	BRONX
+EDC	Unspecified
+OCME	Unspecified
+NYPD	Unspecified
+HPD	BRONX
+COIB	Unspecified
+CWI	Unspecified
+DCA	MANHATTAN
+DFTA	QUEENS
+DOHMH	BROOKLYN
+EDC	BROOKLYN
+DOITT	BRONX
+DPR	QUEENS
+NYPD	BROOKLYN
+NYCEM	MANHATTAN
+DOB	MANHATTAN
+HPD	QUEENS
+OATH	Unspecified
+DOT	Unspecified
+DEP	MANHATTAN
+DOT	BROOKLYN
+DOE	STATEN ISLAND
+OCHIA	Unspecified
+DOHMH	MANHATTAN
+DOR	Unspecified
+EDC	MANHATTAN
+DFTA	STATEN ISLAND
+NYPD	MANHATTAN
+3-1-1	BRONX
+DPR	STATEN ISLAND
+MOVA	Unspecified
+DOITT	QUEENS
+HPD	STATEN ISLAND
+HRA	Unspecified
+DOE	Unspecified
+3-1-1	QUEENS
+DOP	Unspecified
+MOC	Unspecified
+TLC	BRONX
+DOT	MANHATTAN
+DFTA	Unspecified
+DOE	BROOKLYN
+FDNY	BRONX
+LPC	Unspecified
+DPR	Unspecified
+MOFTB	Unspecified
+TLC	QUEENS
+DFTA	BROOKLYN
+DOC	Unspecified
+HPD	Unspecified
+VAC	Unspecified
+DPR	BROOKLYN
+FDNY	QUEENS
+AJC	Unspecified
+DOITT	Unspecified
+DYCD	Unspecified
+DHS	BRONX
+DOF	BRONX
+DOITT	STATEN ISLAND
+DORIS	Unspecified
+HPD	BROOKLYN
+NYCSERVICE	Unspecified
+3-1-1	STATEN ISLAND
+HRA	MANHATTAN
+LAW	Unspecified
+NYCPPF	Unspecified
+DHS	QUEENS
+DOE	MANHATTAN
+DOF	QUEENS
+DSNY	BRONX
+SBS	Unspecified
+DFTA	MANHATTAN
+EMTF	Unspecified
+MOIA	Unspecified
+NYCERS	Unspecified
+TLC	STATEN ISLAND
+DPR	MANHATTAN
+DCA	BRONX
+DSNY	QUEENS
+FDNY	STATEN ISLAND
+3-1-1	Unspecified
+DOITT	BROOKLYN
+HPD	MANHATTAN
+OAE	Unspecified
+DOHMH	BRONX
+DV	Unspecified
+NYCEM	BRONX
+DOB	BRONX
+LOFT	Unspecified
+CHALL	Unspecified
+DCA	QUEENS
+CAU	Unspecified
+TLC	Unspecified
+DHS	STATEN ISLAND
+DOF	STATEN ISLAND
+NYCEM	QUEENS
+DEP	BRONX
+DOB	QUEENS
+FDNY	Unspecified
+IA	Unspecified
+TLC	BROOKLYN
+
+use aat404db;
+add jar /home/mh4047/csv-serde-1.0.jar;
+
+#Average open complaints per hour everyday across complaint types
+INSERT OVERWRITE DIRECTORY 'opencomplaintstypes' select agency, borough, complainttype, complaintHour, int(avg(open)) from 
+(select agency, borough, complainttype, complaintHour, month, day, year, count(distinct ukey) as open from 
+(select agency, borough, complainttype, month(unTS) as month, day(unTS) as day, year(unTS) as year, hour(unTS) as complaintHour, ukey from 
+(select ukey, agency, borough, complainttype, createddate, from_unixtime(unix_timestamp(createddate, 'MM/dd/yyyy hh:mm:ss aa')) as unTS from service_requests1 where createddate <> '' and agency = 'NYPD' and (borough = 'QUEENS' or borough = 'BROOKLYN') group by createddate, ukey, agency, borough, complainttype
+) tbl2 group by unTS, ukey, agency, borough, complainttype, unTS
+) tbl3 group by agency, borough, complainttype, month, day, year, complaintHour
+) tbl4 group by agency, borough, complainttype, complaintHour;
+
+hadoop fs -cat /user/mh4047/opencomplaintstypes/* |tr "\01" "," >>opencomplaintstypes.csv
+
+/**/
+#Per hour everyday the number of complaints for NYPD
+INSERT OVERWRITE DIRECTORY 'opennoisecomplaintstypes' select agency, borough, complaintHour, int(avg(open)) from 
+(select agency, borough, complainttype, complaintHour, month, day, year, count(distinct ukey) as open from 
+(select agency, borough, complainttype, month(unTS) as month, day(unTS) as day, year(unTS) as year, hour(unTS) as complaintHour, ukey from 
+(select ukey, agency, borough, complainttype, createddate, from_unixtime(unix_timestamp(createddate, 'MM/dd/yyyy hh:mm:ss aa')) as unTS from service_requests1 
+where createddate <> '' and agency = 'NYPD' and (borough = 'QUEENS' or borough = 'BROOKLYN') and substr(complainttype,0,5)="Noise" group by createddate, ukey, agency, borough, complainttype
+) tbl2 group by unTS, ukey, agency, borough, complainttype, unTS
+) tbl3 group by agency, borough, complainttype, month, day, year, complaintHour
+) tbl4 group by agency, borough, complaintHour;
+
+hadoop fs -cat /user/mh4047/opennoisecomplaintstypes/* |tr "\01" "," >>opennoisecomplaintstypes.csv
+
+/**/
+INSERT OVERWRITE DIRECTORY 'opennoisecomplaintstypes' select agency, borough, complaintHour, int(avg(open)) from 
+(select agency, borough, complainttype, complaintHour, month, day, year, count(distinct ukey) as open from 
+(select agency, borough, complainttype, month(unTS) as month, day(unTS) as day, year(unTS) as year, hour(unTS) as complaintHour, ukey from 
+(select ukey, agency, borough, complainttype, createddate, from_unixtime(unix_timestamp(createddate, 'MM/dd/yyyy hh:mm:ss aa')) as unTS from service_requests1 
+where createddate <> '' and agency = 'NYPD' and (borough = 'QUEENS' or borough = 'BROOKLYN') and substr(complainttype,0,5)="Noise" group by createddate, ukey, agency, borough, complainttype
+) tbl2 group by unTS, ukey, agency, borough, complainttype, unTS
+) tbl3 group by agency, borough, complainttype, month, day, year, complaintHour
+) tbl4 group by agency, borough, complaintHour;
+
+#Number of complaints per agency
+select agency, count(ukey) from (select distinct agency, ukey from service_requests1) tbl1 group by agency;
+DOC	8
+HPD	2386424
+VAC	4
+FUND	11
+DOE	5806
+NYCERS	3
+DHS	16163
+DOF	158209
+FDNY	28142
+OATH	314
+3-1-1	9713
+OAE	4
+CCRB	9
+EDC	4250
+OCME	8
+OPS	1292
+DOP	172
+MOC	9
+NYCSERVICE	3
+DOR	56
+IA	6
+DOT	1168384
+DV	1
+NYPD	1056460
+SBS	4
+AJC	7
+DOITT	2327
+DYCD	6
+ACS	5
+MOFTB	14
+NYCPPF	7
+LOFT	2
+DCLA	10
+DORIS	11
+DCA	81142
+DFTA	1562
+LPC	1
+NYCEM	983
+OMB	1
+MOVA	15
+CHALL	21005
+COIB	12
+CWI	1
+EMTF	1
+MOIA	30
+DEP	660005
+DPR	312646
+DCAS	7
+DCP	23
+NYCHA	9
+NYCOOA	9
+CAU	9
+TLC	91541
+OCHIA	4
+DESIGNCOM	2
+DOHMH	209120
+DSNY	535203
+MOPD	10
+HRA	66431
+OPA	5
+LAW	11
+DOB	344895
+TFA	1
+
+select distinct status from service_requests1;
+
+#Number of complaints per agency closed, and still pending
+select agency, status, count(ukey) totComplaints from (select distinct agency, status,ukey from service_requests1) tbl1 group by agency, status order by agency,totComplaints;
+
+#Number requests per complaint types
+select complainttype, count(ukey) as complaintcount from (select distinct complainttype, ukey from service_requests1) tbl1 group by complainttype order by complaintcount asc;
+
+#Number requests per complaint types for each borough
+select * from (select borough, complainttype, count(ukey) as complaintcount from (select distinct borough, complainttype, ukey from service_requests1) tbl1 group by borough, complainttype order by complaintcount asc)tbl2 where complaintcount>50 ;
+
+#Rate of incoming calls versus rate of closing calls per month for each agency
+#Average open complaints per hour everyday across complaint types
+INSERT OVERWRITE DIRECTORY 'opencomplaintstypes' select agency, borough, complainttype, complaintHour, int(avg(open)) from 
+(select agency, borough, complainttype, complaintHour, month, day, year, count(distinct ukey) as open from 
+(select agency, borough, complainttype, month(unTS) as month, day(unTS) as day, year(unTS) as year, hour(unTS) as complaintHour, ukey from 
+(select ukey, agency, borough, complainttype, createddate, from_unixtime(unix_timestamp(createddate, 'MM/dd/yyyy hh:mm:ss aa')) as unTS from service_requests1 where createddate <> '' group by createddate, ukey, agency, borough, complainttype
+) tbl2 group by unTS, ukey, agency, borough, complainttype, unTS
+) tbl3 group by agency, borough, complainttype, month, day, year, complaintHour
+) tbl4 group by agency, borough, complainttype, complaintHour;
+
+#Population and number of 311 calls for each borough, agency, year
+select * from 
+(select agency, borough, year, count(distinct ukey) as complaintCount from 
+(select agency, borough, month(unTS) as month, day(unTS) as day, year(unTS) as year, ukey from  
+(select ukey, agency, borough, createddate, from_unixtime(unix_timestamp(createddate, 'MM/dd/yyyy hh:mm:ss aa')) as unTS 
+from service_requests1 where createddate <> '' group by createddate, ukey, agency, borough
+)tbl2 group by unTS, ukey, agency, borough, unTS
+)tbl3 group by agency, borough, year
+)tbl4 where complaintCount>10 order by agency, borough, year, complaintCount;
+
+

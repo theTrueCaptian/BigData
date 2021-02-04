@@ -1,0 +1,7 @@
+>hive> use mh4047;
+hive> 
+create external table if not exists Noise(Unique String,Created_Date String ,Closed_Date String ,Agency String ,Agency_Name String, Complaint_Type String, Descriptor String , Location_Type String, Incident_Zip String,Incident_Address String, Street_Name String, Cross_Street_1 String, Cross_Street_2 String, Intersection_Street_1 String, Intersection_Street_2 String, Address_Type String, City String, Landmark String, Facility_Type String, Status String , Due_Date String, Resolution_Action String, Update String, Community_Board String , Borough String, X_Coordinate String, Y_Coordinate String, Park_Facility_Name String, Park_Borough String, School_Name String, School_Number String, School_Region String, School_Code String, School_Phone_Number String, School_Address String, School_City String, School_State String, School_Zip String,School_Not_Found String, School_or_Citywide String, Vehicle_Type String, Taxi_Company_Borough String, Taxi_Pick_Up_Location String, Bridge_Highway_Name String, Bridge_Highway_Direction String, Road_Ramp String, Bridge_Highway_Segment String,  Garage_Lot_Name String, Ferry_Direction String, Ferry_Terminal_Name String,Latitude String, Longitude String, Location String)
+row format delimited
+fields terminated by ','
+stored as TEXTFILE
+location '/home/mh4047/data/noise_dataset.csv';
